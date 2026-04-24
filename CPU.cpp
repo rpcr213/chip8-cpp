@@ -212,19 +212,61 @@ void CPU::sne_vx_byte(uint8_t x, uint8_t kk) {}
 void CPU::se_vx_vy(uint8_t x, uint8_t y) {}
 
 void CPU::ld_vx_byte(uint8_t x, uint8_t kk) {}
-void CPU::add_vx_byte(uint8_t x, uint8_t kk) {}
+void CPU::add_vx_byte(uint8_t x, uint8_t kk) {
+    v[x] = v[x] + kk;
+}
 
-void CPU::ld_vx_vy(uint8_t x, uint8_t y) {}
-void CPU::or_vx_vy(uint8_t x, uint8_t y) {}
-void CPU::and_vx_vy(uint8_t x, uint8_t y) {}
-void CPU::xor_vx_vy(uint8_t x, uint8_t y) {}
-void CPU::add_vx_vy(uint8_t x, uint8_t y) {}
-void CPU::sub_vx_vy(uint8_t x, uint8_t y) {}
-void CPU::shr_vx(uint8_t x) {}
-void CPU::subn_vx_vy(uint8_t x, uint8_t y) {}
-void CPU::shl_vx(uint8_t x) {}
+void CPU::ld_vx_vy(uint8_t x, uint8_t y) {
+    v[x] = v[y];
+}
 
-void CPU::sne_vx_vy(uint8_t x, uint8_t y) {}
+void CPU::or_vx_vy(uint8_t x, uint8_t y) {
+    v[x] = v[x] | v[y];
+}
+
+void CPU::and_vx_vy(uint8_t x, uint8_t y) {
+    v[x] = v[x] & v[y];
+}
+
+void CPU::xor_vx_vy(uint8_t x, uint8_t y) {
+    v[x] = v[x] ^ v[y];
+}
+
+// sumamos y si hay overflow, ponemos vf a 1
+void CPU::add_vx_vy(uint8_t x, uint8_t y) {
+    uint16_t res = v[x] + v[y]; 
+    if (res > 0xFF) v[0xF] = 1;
+    else v[0xF] = 0;
+    v[x] = (res & 0xFF);
+}
+
+// restamos y si no hay overflow, ponemos vf a 1
+void CPU::sub_vx_vy(uint8_t x, uint8_t y) {
+    if (v[x] > v[y]) v[0xF] = 1;
+    else v[0xF] = 0;
+    v[x] = v[x] - v[y];
+}
+
+// v[x] /= 2 y si es impar (antes de dividir) vf pasa a ser 1
+void CPU::shr_vx(uint8_t x) {
+    v[0xF] = (v[x] & 0b1);
+    v[x] = v[x] / 2;
+}
+
+// v[x] - v[y], si (v[y] > v[x]) entonces vf = 1
+void CPU::subn_vx_vy(uint8_t x, uint8_t y) {
+    v[0xF] = (v[y] > v[x]);
+    v[x] = v[y] - v[x];
+}
+
+void CPU::shl_vx(uint8_t x) {
+    v[0xF] = (v[x] & 0b10000000);
+    v[x] = v[x] * 2;
+}
+
+void CPU::sne_vx_vy(uint8_t x, uint8_t y) {
+    if (v[x] != v[y]) pc += 2;
+}
 
 void CPU::ld_i_addr(uint16_t addr) {}
 void CPU::jp_v0_addr(uint16_t addr) {}
