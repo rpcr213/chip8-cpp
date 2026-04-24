@@ -1,6 +1,7 @@
 #include "CPU.h"
 
 CPU::CPU() : pc(0x200), ir(0), sp(0), dt(0), st(0) {
+    std::mt19937 gen(SEED);
     // variamos memoria
     for (int i = 0; i < REG_COUNT; i++) {
         this->v[i] = 0;
@@ -200,18 +201,47 @@ int CPU::execute_instruction(uint16_t opcode) {
     return 0;
 }
 
-void CPU::cls() {}
-void CPU::ret() {}
-void CPU::sys_addr(uint16_t addr) {}
+void CPU::cls() {
+    for (int i = 0; i < (FB_X * FB_Y); i++) {
+        fb[i] = 0;
+    }
+}
 
-void CPU::jp_addr(uint16_t addr) {}
-void CPU::call_addr(uint16_t addr) {}
+void CPU::ret() {
+    pc = stack[sp];
+    sp = sp - 1;
+}
 
-void CPU::se_vx_byte(uint8_t x, uint8_t kk) {}
-void CPU::sne_vx_byte(uint8_t x, uint8_t kk) {}
-void CPU::se_vx_vy(uint8_t x, uint8_t y) {}
+void CPU::sys_addr(uint16_t addr) {
+    // TODO
+}
 
-void CPU::ld_vx_byte(uint8_t x, uint8_t kk) {}
+void CPU::jp_addr(uint16_t addr) {
+    pc = addr;
+}
+
+void CPU::call_addr(uint16_t addr) {
+    sp = sp + 1;
+    stack[sp] = pc;
+    pc = addr;
+}
+
+void CPU::se_vx_byte(uint8_t x, uint8_t kk) {
+    if (v[x] == kk) pc += 2;
+}
+
+void CPU::sne_vx_byte(uint8_t x, uint8_t kk) {
+    if (v[x] != kk) pc += 2;
+}
+
+void CPU::se_vx_vy(uint8_t x, uint8_t y) {
+    if (v[x] == v[y]) pc += 2;
+}
+
+void CPU::ld_vx_byte(uint8_t x, uint8_t kk) {
+    v[x] = kk;
+}
+
 void CPU::add_vx_byte(uint8_t x, uint8_t kk) {
     v[x] = v[x] + kk;
 }
@@ -260,7 +290,7 @@ void CPU::subn_vx_vy(uint8_t x, uint8_t y) {
 }
 
 void CPU::shl_vx(uint8_t x) {
-    v[0xF] = (v[x] & 0b10000000);
+    v[0xF] = ((v[x] >> 7) & 0b1);
     v[x] = v[x] * 2;
 }
 
@@ -268,22 +298,78 @@ void CPU::sne_vx_vy(uint8_t x, uint8_t y) {
     if (v[x] != v[y]) pc += 2;
 }
 
-void CPU::ld_i_addr(uint16_t addr) {}
-void CPU::jp_v0_addr(uint16_t addr) {}
+void CPU::ld_i_addr(uint16_t addr) {
+    ir = addr;
+}
 
-void CPU::rnd_vx_byte(uint8_t x, uint8_t kk) {}
+void CPU::jp_v0_addr(uint16_t addr) {
+    pc = v[0x0] + addr;
+}
 
-void CPU::drw_vx_vy_nibble(uint8_t x, uint8_t y, uint8_t n) {}
+void CPU::rnd_vx_byte(uint8_t x, uint8_t kk) {
+    v[x] = (gen() & 0xFF) & kk; // ALERTA, kk... no deberian de ser 2 bytes?
+}
 
-void CPU::skp_vx(uint8_t x) {}
-void CPU::sknp_vx(uint8_t x) {}
+void CPU::drw_vx_vy_nibble(uint8_t x, uint8_t y, uint8_t n) {
+    v[0xF] = 0;
+    int p_x = v[x] & 63;
+    int p_y = v[y] & 31;
 
-void CPU::ld_vx_dt(uint8_t x) {}
-void CPU::ld_vx_k(uint8_t x) {}
-void CPU::ld_dt_vx(uint8_t x) {}
-void CPU::ld_st_vx(uint8_t x) {}
-void CPU::add_i_vx(uint8_t x) {}
-void CPU::ld_f_vx(uint8_t x) {}
-void CPU::ld_b_vx(uint8_t x) {}
-void CPU::ld_i_vx(uint8_t x) {}
-void CPU::ld_vx_i(uint8_t x) {}
+    for (int i = 0; i < n && p_y + i < FB_Y; i++) {
+        uint8_t sprite_byte = memory[ir + i];
+        for (int j = 0; j < 8 && p_x + j < FB_X; j++) {
+            uint8_t bit = (sprite_byte >> (7 - j)) & 1;
+            int idx = (p_y + i) * FB_X + (p_x + j);
+            if (fb[idx] == 1 && bit == 1) v[0xF] = 1;
+            fb[idx] = fb[idx] ^ bit;
+        }
+    }
+}
+
+void CPU::skp_vx(uint8_t x) {
+
+}
+
+void CPU::sknp_vx(uint8_t x) {
+
+}
+
+void CPU::ld_vx_dt(uint8_t x) {
+
+}
+
+void CPU::ld_vx_k(uint8_t x) {
+
+}
+
+void CPU::ld_dt_vx(uint8_t x) {
+    dt = v[x];
+}
+
+void CPU::ld_st_vx(uint8_t x) {
+    st = v[x];
+}
+
+void CPU::add_i_vx(uint8_t x) {
+    ir = ir + v[x];
+}
+
+void CPU::ld_f_vx(uint8_t x) {
+
+}
+
+void CPU::ld_b_vx(uint8_t x) {
+
+}
+
+void CPU::ld_i_vx(uint8_t x) {
+    for (int i = 0; i <= x; i++) {
+        memory[ir + i] = v[i];
+    }
+}
+
+void CPU::ld_vx_i(uint8_t x) {
+    for (int i = 0; i <= x; i++) {
+        v[i] = memory[ir + i];
+    }
+}

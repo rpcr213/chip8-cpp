@@ -1,15 +1,18 @@
 #pragma once
 #include <stdint.h>
+#include <random>
 #include "sprites.h"
 #define REG_COUNT 16
 #define STACK_SIZE 16
 #define FB_X 64
 #define FB_Y 32
 #define MEMORY_SIZE 4096
+#define SEED 12345
 
 
 class CPU {
     private:
+        std::mt19937 gen;
         uint8_t v[REG_COUNT]; // VX register: V0, V1, V2, ..., VF
         uint16_t ir; // index register
         uint16_t pc; // program counter
