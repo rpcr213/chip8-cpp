@@ -44,130 +44,204 @@ int CPU::process() {
 }
 
 int CPU::execute_instruction(uint16_t opcode) {
-    // decode
-    switch (opcode & 0xF000) { // TODO: 0NNN?
-        case 0x0:
-            switch (opcode & 0xFF) {
+
+    uint8_t x  = (opcode & 0x0F00) >> 8;
+    uint8_t y  = (opcode & 0x00F0) >> 4;
+    uint8_t kk = opcode & 0x00FF;
+    uint16_t nnn = opcode & 0x0FFF;
+    uint8_t n  = opcode & 0x000F;
+
+    switch (opcode & 0xF000) {
+
+        case 0x0000:
+            switch (opcode & 0x00FF) {
                 case 0xE0:
-                    // TODO
+                    cls();
                     break;
                 case 0xEE:
-                    // TODO
+                    ret();
+                    break;
+                default:
+                    sys_addr(nnn);
                     break;
             }
             break;
-        case 0x1:
-            // TODO
+
+        case 0x1000:
+            jp_addr(nnn);
             break;
-        case 0x2:
-            // TODO
+
+        case 0x2000:
+            call_addr(nnn);
             break;
-        case 0x3:
-            // TODO
+
+        case 0x3000:
+            se_vx_byte(x, kk);
             break;
-        case 0x4:
-            // TODO
+
+        case 0x4000:
+            sne_vx_byte(x, kk);
             break;
-        case 0x5:
-            // TODO
+
+        case 0x5000:
+            if ((opcode & 0x000F) == 0x0)
+                se_vx_vy(x, y);
             break;
-        case 0x6:
-            // TODO
+
+        case 0x6000:
+            ld_vx_byte(x, kk);
             break;
-        case 0x7:
-            // TODO
+
+        case 0x7000:
+            add_vx_byte(x, kk);
             break;
-        case 0x8:
-            switch (opcode & 0xF) {
+
+        case 0x8000:
+            switch (opcode & 0x000F) {
                 case 0x0:
-                    // TODO
+                    ld_vx_vy(x, y);
                     break;
                 case 0x1:
-                    // TODO
+                    or_vx_vy(x, y);
                     break;
                 case 0x2:
-                    // TODO
+                    and_vx_vy(x, y);
                     break;
                 case 0x3:
-                    // TODO
+                    xor_vx_vy(x, y);
                     break;
                 case 0x4:
-                    // TODO
+                    add_vx_vy(x, y);
                     break;
                 case 0x5:
-                    // TODO
+                    sub_vx_vy(x, y);
                     break;
                 case 0x6:
-                    // TODO
+                    shr_vx(x);
                     break;
                 case 0x7:
-                    // TODO
+                    subn_vx_vy(x, y);
                     break;
                 case 0xE:
-                    // TODO
+                    shl_vx(x);
                     break;
             }
             break;
-        case 0x9:
-            // TODO
+
+        case 0x9000:
+            if ((opcode & 0x000F) == 0x0)
+                sne_vx_vy(x, y);
             break;
-        case 0xA:
-            // TODO
+
+        case 0xA000:
+            ld_i_addr(nnn);
             break;
-        case 0xB:
-            // TODO
+
+        case 0xB000:
+            jp_v0_addr(nnn);
             break;
-        case 0xC:
-            // TODO
+
+        case 0xC000:
+            rnd_vx_byte(x, kk);
             break;
-        case 0xD:
-            // TODO
+
+        case 0xD000:
+            drw_vx_vy_nibble(x, y, n);
             break;
-        case 0xE:
+
+        case 0xE000:
             switch (opcode & 0x00FF) {
                 case 0x9E:
-                    // TODO
+                    skp_vx(x);
                     break;
-                case 0x1A:
-                    // TODO
+                case 0xA1:
+                    sknp_vx(x);
                     break;
             }
             break;
-        case 0xF:
+
+        case 0xF000:
             switch (opcode & 0x00FF) {
                 case 0x07:
-                    // TODO
+                    ld_vx_dt(x);
                     break;
                 case 0x0A:
-                    // TODO
+                    ld_vx_k(x);
                     break;
                 case 0x15:
-                    // TODO
+                    ld_dt_vx(x);
                     break;
                 case 0x18:
-                    // TODO
+                    ld_st_vx(x);
                     break;
                 case 0x1E:
-                    // TODO
+                    add_i_vx(x);
                     break;
                 case 0x29:
-                    // TODO
+                    ld_f_vx(x);
                     break;
                 case 0x33:
-                    // TODO
+                    ld_b_vx(x);
                     break;
                 case 0x55:
-                    // TODO
+                    ld_i_vx(x);
                     break;
                 case 0x65:
-                    // TODO
+                    ld_vx_i(x);
                     break;
             }
             break;
+
         default:
-            // TODO
+            // no deberia de entrar aqui
             break;
     }
 
     return 0;
 }
+
+void CPU::cls() {}
+void CPU::ret() {}
+void CPU::sys_addr(uint16_t addr) {}
+
+void CPU::jp_addr(uint16_t addr) {}
+void CPU::call_addr(uint16_t addr) {}
+
+void CPU::se_vx_byte(uint8_t x, uint8_t kk) {}
+void CPU::sne_vx_byte(uint8_t x, uint8_t kk) {}
+void CPU::se_vx_vy(uint8_t x, uint8_t y) {}
+
+void CPU::ld_vx_byte(uint8_t x, uint8_t kk) {}
+void CPU::add_vx_byte(uint8_t x, uint8_t kk) {}
+
+void CPU::ld_vx_vy(uint8_t x, uint8_t y) {}
+void CPU::or_vx_vy(uint8_t x, uint8_t y) {}
+void CPU::and_vx_vy(uint8_t x, uint8_t y) {}
+void CPU::xor_vx_vy(uint8_t x, uint8_t y) {}
+void CPU::add_vx_vy(uint8_t x, uint8_t y) {}
+void CPU::sub_vx_vy(uint8_t x, uint8_t y) {}
+void CPU::shr_vx(uint8_t x) {}
+void CPU::subn_vx_vy(uint8_t x, uint8_t y) {}
+void CPU::shl_vx(uint8_t x) {}
+
+void CPU::sne_vx_vy(uint8_t x, uint8_t y) {}
+
+void CPU::ld_i_addr(uint16_t addr) {}
+void CPU::jp_v0_addr(uint16_t addr) {}
+
+void CPU::rnd_vx_byte(uint8_t x, uint8_t kk) {}
+
+void CPU::drw_vx_vy_nibble(uint8_t x, uint8_t y, uint8_t n) {}
+
+void CPU::skp_vx(uint8_t x) {}
+void CPU::sknp_vx(uint8_t x) {}
+
+void CPU::ld_vx_dt(uint8_t x) {}
+void CPU::ld_vx_k(uint8_t x) {}
+void CPU::ld_dt_vx(uint8_t x) {}
+void CPU::ld_st_vx(uint8_t x) {}
+void CPU::add_i_vx(uint8_t x) {}
+void CPU::ld_f_vx(uint8_t x) {}
+void CPU::ld_b_vx(uint8_t x) {}
+void CPU::ld_i_vx(uint8_t x) {}
+void CPU::ld_vx_i(uint8_t x) {}
