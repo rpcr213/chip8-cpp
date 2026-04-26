@@ -1,7 +1,9 @@
 #pragma once
 #include <stdint.h>
 #include <random>
-#include "sprites.h"
+#define SPRITES_ROWS 16
+#define SPRITES_COLS 5
+// #include "sprites.h"
 #define REG_COUNT 16
 #define STACK_SIZE 16
 #define FB_X 64
@@ -9,6 +11,15 @@
 #define MEMORY_SIZE 4096
 #define SEED 12345
 #define ROM_START 0x200
+
+typedef enum {
+    ROM_OK = 0,
+    ERR_NAME = 1,
+    ERR_SIZE = 2,
+    ERR_READ = 3,
+    ERR_SIZE_CPU = 4,
+    ERR_ROM_PTR = 5,
+} tErrRom;
 
 
 class CPU {
@@ -99,6 +110,6 @@ class CPU {
         ~CPU();
         int process(const uint8_t* keys);
         void copy_fb(uint8_t* fb);
-        int load_rom(uint8_t* rom, uint16_t size);
+        tErrRom load_rom(uint8_t* rom, uint16_t size);
 
 };
