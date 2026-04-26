@@ -8,6 +8,7 @@
 #define FB_Y 32
 #define MEMORY_SIZE 4096
 #define SEED 12345
+#define ROM_START 0x200
 
 
 class CPU {
@@ -22,7 +23,7 @@ class CPU {
         uint8_t fb[FB_X * FB_Y]; // frame buffer
         uint16_t stack[STACK_SIZE]; // 16 bits porque las direcciones ocupan 12, uint8_t -> insuficiente
         uint8_t memory[MEMORY_SIZE];
-        int execute_instruction(uint16_t opcode);
+        int execute_instruction(uint16_t opcode, const uint8_t* keys);
         
         // 0x0
         void cls();
@@ -77,12 +78,12 @@ class CPU {
         void drw_vx_vy_nibble(uint8_t x, uint8_t y, uint8_t n);
 
         // 0xE
-        void skp_vx(uint8_t x);
-        void sknp_vx(uint8_t x);
+        void skp_vx(uint8_t x, const uint8_t* keys);
+        void sknp_vx(uint8_t x, const uint8_t* keys);
 
         // 0xF
         void ld_vx_dt(uint8_t x);
-        void ld_vx_k(uint8_t x);
+        void ld_vx_k(uint8_t x, const uint8_t* keys);
         void ld_dt_vx(uint8_t x);
         void ld_st_vx(uint8_t x);
         void add_i_vx(uint8_t x);
@@ -91,10 +92,13 @@ class CPU {
         void ld_i_vx(uint8_t x);
         void ld_vx_i(uint8_t x);
 
+        void tick_timers(); // se llama 60 veces en 1 seg
+
     public:
         CPU();
         ~CPU();
-        int process();
-
+        int process(const uint8_t* keys);
+        void copy_fb(uint8_t* fb);
+        int load_rom(uint8_t* rom, uint16_t size);
 
 };

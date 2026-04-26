@@ -1,7 +1,6 @@
 #include "CPU.h"
 
-CPU::CPU() : pc(0x200), ir(0), sp(0), dt(0), st(0) {
-    std::mt19937 gen(SEED);
+CPU::CPU() : gen(SEED), pc(ROM_START), ir(0), sp(0), dt(0), st(0) {
     // variamos memoria
     for (int i = 0; i < REG_COUNT; i++) {
         this->v[i] = 0;
@@ -28,23 +27,21 @@ CPU::~CPU() {
 
 }
 
-int CPU::process() {
+int CPU::process(const uint8_t* keys) {
     // fetch
-    if (pc >= MEMORY_SIZE) return 1;
+    if (pc + 1 >= MEMORY_SIZE) return 1;
 
     uint16_t opcode = (memory[pc] << 8) | memory[pc + 1];
     pc += 2;
 
-    if (execute_instruction(opcode)) {
+    if (execute_instruction(opcode, keys)) {
         return 1;
     }
-
-
 
     return 0;
 }
 
-int CPU::execute_instruction(uint16_t opcode) {
+int CPU::execute_instruction(uint16_t opcode, const uint8_t* keys) {
 
     uint8_t x  = (opcode & 0x0F00) >> 8;
     uint8_t y  = (opcode & 0x00F0) >> 4;
@@ -153,10 +150,10 @@ int CPU::execute_instruction(uint16_t opcode) {
         case 0xE000:
             switch (opcode & 0x00FF) {
                 case 0x9E:
-                    skp_vx(x);
+                    skp_vx(x, keys);
                     break;
                 case 0xA1:
-                    sknp_vx(x);
+                    sknp_vx(x, keys);
                     break;
             }
             break;
@@ -167,7 +164,7 @@ int CPU::execute_instruction(uint16_t opcode) {
                     ld_vx_dt(x);
                     break;
                 case 0x0A:
-                    ld_vx_k(x);
+                    ld_vx_k(x, keys);
                     break;
                 case 0x15:
                     ld_dt_vx(x);
@@ -208,8 +205,8 @@ void CPU::cls() {
 }
 
 void CPU::ret() {
-    pc = stack[sp];
     sp = sp - 1;
+    pc = stack[sp];
 }
 
 void CPU::sys_addr(uint16_t addr) {
@@ -221,8 +218,8 @@ void CPU::jp_addr(uint16_t addr) {
 }
 
 void CPU::call_addr(uint16_t addr) {
-    sp = sp + 1;
     stack[sp] = pc;
+    sp = sp + 1;
     pc = addr;
 }
 
@@ -272,7 +269,7 @@ void CPU::add_vx_vy(uint8_t x, uint8_t y) {
 
 // restamos y si no hay overflow, ponemos vf a 1
 void CPU::sub_vx_vy(uint8_t x, uint8_t y) {
-    if (v[x] > v[y]) v[0xF] = 1;
+    if (v[x] >= v[y]) v[0xF] = 1;
     else v[0xF] = 0;
     v[x] = v[x] - v[y];
 }
@@ -285,7 +282,7 @@ void CPU::shr_vx(uint8_t x) {
 
 // v[x] - v[y], si (v[y] > v[x]) entonces vf = 1
 void CPU::subn_vx_vy(uint8_t x, uint8_t y) {
-    v[0xF] = (v[y] > v[x]);
+    v[0xF] = (v[y] >= v[x]);
     v[x] = v[y] - v[x];
 }
 
@@ -326,20 +323,27 @@ void CPU::drw_vx_vy_nibble(uint8_t x, uint8_t y, uint8_t n) {
     }
 }
 
-void CPU::skp_vx(uint8_t x) {
-
+void CPU::skp_vx(uint8_t x, const uint8_t* keys) {
+    if (keys[v[x]]) pc += 2;
 }
 
-void CPU::sknp_vx(uint8_t x) {
-
+void CPU::sknp_vx(uint8_t x, const uint8_t* keys) {
+    if (!keys[v[x]]) pc += 2;
 }
 
 void CPU::ld_vx_dt(uint8_t x) {
-
+    v[x] = dt;
 }
 
-void CPU::ld_vx_k(uint8_t x) {
+void CPU::ld_vx_k(uint8_t x, const uint8_t* keys) {
+    for (uint8_t i = 0; i < 16; i++) {
+        if (keys[i]) {
+            v[x] = i;
+            return;
+        }
+    }
 
+    pc -= 2;
 }
 
 void CPU::ld_dt_vx(uint8_t x) {
@@ -355,11 +359,16 @@ void CPU::add_i_vx(uint8_t x) {
 }
 
 void CPU::ld_f_vx(uint8_t x) {
-
+    ir = v[x] * 5;
 }
 
 void CPU::ld_b_vx(uint8_t x) {
-
+    int val = v[x];
+    memory[ir + 2] = val % 10;
+    val /= 10;
+    memory[ir + 1] = val % 10;
+    val /= 10;
+    memory[ir] = val;
 }
 
 void CPU::ld_i_vx(uint8_t x) {
@@ -372,4 +381,29 @@ void CPU::ld_vx_i(uint8_t x) {
     for (int i = 0; i <= x; i++) {
         v[i] = memory[ir + i];
     }
+}
+
+void CPU::copy_fb(uint8_t* fb) {
+    for (int i = 0; i < (FB_X * FB_Y); i++) {
+        fb[i] = this->fb[i];
+    }
+}
+
+void CPU::tick_timers() {
+    if (dt > 0) dt--;
+    if (st > 0) st--;
+}
+
+int CPU::load_rom(uint8_t* rom, uint16_t size){
+    uint16_t pt = ROM_START;
+
+    if (rom == nullptr) return 1;
+    if (ROM_START + size > MEMORY_SIZE) return 1;
+
+    for (uint16_t i = 0; i < size; i++) {
+        this->memory[pt] = rom[i];
+        pt++;
+    }
+    
+    return 0;
 }
