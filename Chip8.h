@@ -4,7 +4,11 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <errno.h>
+#include <chrono>
+#include <thread>
 #define KEYBOARD_SIZE 16
+#define CPU_PRED_HZ 600
+#define TIMER_PRED_HZ 60
 
 
 

@@ -103,7 +103,6 @@ class CPU {
         void ld_i_vx(uint8_t x);
         void ld_vx_i(uint8_t x);
 
-        void tick_timers(); // se llama 60 veces en 1 seg
 
     public:
         CPU();
@@ -111,5 +110,6 @@ class CPU {
         int process(const uint8_t* keys);
         void copy_fb(uint8_t* fb);
         tErrRom load_rom(uint8_t* rom, uint16_t size);
+        void tick_timers(); // se llama 60 veces en 1 seg
 
 };

@@ -8,7 +8,35 @@ Chip8::Chip8() {
 }
 
 int Chip8::run_chip8() {
-    
+    using clock = std::chrono::steady_clock;
+
+    constexpr int CPU_HZ = CPU_PRED_HZ;
+    constexpr int TIMER_HZ = TIMER_PRED_HZ;
+    constexpr int INSTRUCTIONS_PER_TIMER_TICK = CPU_HZ / TIMER_HZ;
+
+    const auto timer_interval = std::chrono::duration<double>(1.0 / TIMER_HZ);
+
+    bool running = true;
+
+    while (running) {
+        auto frame_start = clock::now();
+
+        get_keys();
+
+        for (int i = 0; i < INSTRUCTIONS_PER_TIMER_TICK; i++) {
+            cpu.process(keys);
+        }
+
+        cpu.tick_timers();
+
+        auto frame_end = clock::now();
+        auto elapsed = frame_end - frame_start;
+
+        if (elapsed < timer_interval) {
+            std::this_thread::sleep_for(timer_interval - elapsed);
+        }
+    }
+
     return 0;
 }
 
