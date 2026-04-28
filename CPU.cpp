@@ -35,7 +35,7 @@ static uint8_t sprites[SPRITES_ROWS][SPRITES_COLS] = {
     {0xF0, 0x80, 0xF0, 0x80, 0x80}
 };
 
-CPU::CPU() : gen(SEED), pc(ROM_START), ir(0), sp(0), dt(0), st(0) {
+CPU::CPU() : gen(SEED), ir(0), pc(ROM_START), sp(0), dt(0), st(0) {
     // variamos memoria
     for (int i = 0; i < REG_COUNT; i++) {
         this->v[i] = 0;
@@ -240,12 +240,13 @@ void CPU::cls() {
 }
 
 void CPU::ret() {
+    if (sp == 0) return;
     sp = sp - 1;
     pc = stack[sp];
 }
 
 void CPU::sys_addr(uint16_t addr) {
-    // TODO
+    (void)addr; // vacio (no se usa)
 }
 
 void CPU::jp_addr(uint16_t addr) {
@@ -253,6 +254,7 @@ void CPU::jp_addr(uint16_t addr) {
 }
 
 void CPU::call_addr(uint16_t addr) {
+    if (sp >= STACK_SIZE) return;
     stack[sp] = pc;
     sp = sp + 1;
     pc = addr;
@@ -344,14 +346,17 @@ void CPU::rnd_vx_byte(uint8_t x, uint8_t kk) {
 
 void CPU::drw_vx_vy_nibble(uint8_t x, uint8_t y, uint8_t n) {
     v[0xF] = 0;
-    int p_x = v[x] & 63;
-    int p_y = v[y] & 31;
+    int p_x = v[x] % FB_X;
+    int p_y = v[y] % FB_Y;
 
-    for (int i = 0; i < n && p_y + i < FB_Y; i++) {
+    for (int i = 0; i < n; i++) {
+        if (ir + i >= MEMORY_SIZE) return;
+        int draw_y = (p_y + i) % FB_Y;
         uint8_t sprite_byte = memory[ir + i];
-        for (int j = 0; j < 8 && p_x + j < FB_X; j++) {
+        for (int j = 0; j < 8; j++) {
+            int draw_x = (p_x + j) % FB_X;
             uint8_t bit = (sprite_byte >> (7 - j)) & 1;
-            int idx = (p_y + i) * FB_X + (p_x + j);
+            int idx = draw_y * FB_X + draw_x;
             if (fb[idx] == 1 && bit == 1) v[0xF] = 1;
             fb[idx] = fb[idx] ^ bit;
         }
@@ -359,11 +364,11 @@ void CPU::drw_vx_vy_nibble(uint8_t x, uint8_t y, uint8_t n) {
 }
 
 void CPU::skp_vx(uint8_t x, const uint8_t* keys) {
-    if (keys[v[x]]) pc += 2;
+    if (v[x] < 16 && keys[v[x]]) pc += 2;
 }
 
 void CPU::sknp_vx(uint8_t x, const uint8_t* keys) {
-    if (!keys[v[x]]) pc += 2;
+    if (v[x] >= 16 || !keys[v[x]]) pc += 2;
 }
 
 void CPU::ld_vx_dt(uint8_t x) {
@@ -390,7 +395,7 @@ void CPU::ld_st_vx(uint8_t x) {
 }
 
 void CPU::add_i_vx(uint8_t x) {
-    ir = ir + v[x];
+    ir = (ir + v[x]) & 0x0FFF;
 }
 
 void CPU::ld_f_vx(uint8_t x) {
@@ -398,6 +403,8 @@ void CPU::ld_f_vx(uint8_t x) {
 }
 
 void CPU::ld_b_vx(uint8_t x) {
+    if (ir + 2 >= MEMORY_SIZE) return;
+
     int val = v[x];
     memory[ir + 2] = val % 10;
     val /= 10;
@@ -408,12 +415,14 @@ void CPU::ld_b_vx(uint8_t x) {
 
 void CPU::ld_i_vx(uint8_t x) {
     for (int i = 0; i <= x; i++) {
+        if (ir + i >= MEMORY_SIZE) return;
         memory[ir + i] = v[i];
     }
 }
 
 void CPU::ld_vx_i(uint8_t x) {
     for (int i = 0; i <= x; i++) {
+        if (ir + i >= MEMORY_SIZE) return;
         v[i] = memory[ir + i];
     }
 }
@@ -427,6 +436,10 @@ void CPU::copy_fb(uint8_t* fb) {
 void CPU::tick_timers() {
     if (dt > 0) dt--;
     if (st > 0) st--;
+}
+
+bool CPU::sound_timer_active() const {
+    return st > 0;
 }
 
 tErrRom CPU::load_rom(uint8_t* rom, uint16_t size){

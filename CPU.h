@@ -111,5 +111,6 @@ class CPU {
         void copy_fb(uint8_t* fb);
         tErrRom load_rom(uint8_t* rom, uint16_t size);
         void tick_timers(); // se llama 60 veces en 1 seg
+        bool sound_timer_active() const;
 
 };

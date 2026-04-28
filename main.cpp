@@ -32,9 +32,8 @@ int main(int argc, char* argv[]) {
             break;
     }
 
-    while (chip8.run_chip8());
-
+    int err = chip8.run_chip8();
     cout << "END CHIP8" << endl;
-    
-    return 0;
+
+    return err;
 }
